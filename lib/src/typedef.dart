@@ -44,11 +44,13 @@ typedef SlideOffsetHandler = Offset? Function(
 
 /// if return true ,pop page
 /// else reset page state
-typedef SlideEndHandler = bool? Function(
+typedef SlideEndHandler = Offset? Function(
   Offset offset, {
   ExtendedImageSlidePageState state,
   ScaleEndDetails details,
 });
+
+typedef SlideTerminationAction = Function();
 
 /// Customize scale of page when slide page
 typedef SlideScaleHandler = double? Function(

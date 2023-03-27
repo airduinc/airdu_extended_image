@@ -26,6 +26,8 @@ class ExtendedImageSlidePage extends StatefulWidget {
     this.slideAxis = SlideAxis.both,
     this.resetPageDuration = const Duration(milliseconds: 500),
     this.slideType = SlideType.onlyImage,
+    this.slideTerminationAction,
+    this.rebounce = true,
     this.onSlidingPage,
     Key? key,
   }) : super(key: key);
@@ -58,6 +60,11 @@ class ExtendedImageSlidePage extends StatefulWidget {
 
   /// on sliding page
   final OnSlidingPage? onSlidingPage;
+
+  final SlideTerminationAction? slideTerminationAction;
+
+  final bool rebounce;
+
   @override
   ExtendedImageSlidePageState createState() => ExtendedImageSlidePageState();
 }
@@ -115,6 +122,10 @@ class ExtendedImageSlidePageState extends State<ExtendedImageSlidePage>
       setState(() {
         if (_backAnimationController.isCompleted) {
           _isSliding = false;
+          if (_offset.dy >= pageSize.height) {
+            _popping = true;
+            _popPage();
+          }
         }
       });
     }
@@ -123,6 +134,14 @@ class ExtendedImageSlidePageState extends State<ExtendedImageSlidePage>
       _extendedImageSlidePageHandlerState?.slide();
     }
     widget.onSlidingPage?.call(this);
+  }
+
+  void _popPage() {
+    if (widget.slideTerminationAction != null) {
+      widget.slideTerminationAction!();
+    } else {
+      Navigator.of(context).pop();
+    }
   }
 
   @override
@@ -183,7 +202,7 @@ class ExtendedImageSlidePageState extends State<ExtendedImageSlidePage>
 
   void endSlide(ScaleEndDetails details) {
     if (mounted && _isSliding) {
-      final bool popPage = widget.slideEndHandler?.call(
+      final Offset? bounceBackToOffset = widget.slideEndHandler?.call(
             _offset,
             state: this,
             details: details,
@@ -194,28 +213,29 @@ class ExtendedImageSlidePageState extends State<ExtendedImageSlidePage>
             pageGestureAxis: widget.slideAxis,
           );
 
-      if (popPage) {
+      if (bounceBackToOffset == null) {
         setState(() {
           _popping = true;
           _isSliding = false;
         });
-        Navigator.pop(context);
-      } else {
+        _popPage();
+      } else if (widget.rebounce && (_offset != Offset.zero || _scale != 1.0)) {
         //_isSliding=false;
-        if (_offset != Offset.zero || _scale != 1.0) {
-          _backOffsetAnimation = _backAnimationController
-              .drive(Tween<Offset>(begin: _offset, end: Offset.zero));
-          _backScaleAnimation = _backAnimationController
-              .drive(Tween<double>(begin: _scale, end: 1.0));
-          _offset = Offset.zero;
-          _scale = 1.0;
-          _backAnimationController.reset();
-          _backAnimationController.forward();
-        } else {
-          setState(() {
-            _isSliding = false;
-          });
-        }
+        _backOffsetAnimation = _backAnimationController
+            .drive(Tween<Offset>(begin: _offset, end: bounceBackToOffset));
+        _backScaleAnimation = _backAnimationController
+            .drive(Tween<double>(begin: _scale, end: 1.0));
+        _offset = bounceBackToOffset;
+        _scale = 1.0;
+        _backAnimationController.reset();
+        _backAnimationController.forward();
+        setState(() {
+          _isSliding = false;
+        });
+      } else {
+        setState(() {
+          _isSliding = false;
+        });
       }
     }
   }

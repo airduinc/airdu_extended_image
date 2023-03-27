@@ -533,21 +533,22 @@ Color defaultSlidePageBackgroundHandler({
   return color.withOpacity(min(1.0, max(1.0 - opacity, 0.0)));
 }
 
-bool defaultSlideEndHandler({
+Offset? defaultSlideEndHandler({
   Offset offset = Offset.zero,
   Size pageSize = const Size(100, 100),
   SlideAxis pageGestureAxis = SlideAxis.both,
 }) {
   const int parameter = 6;
+  bool canPop = false;
   if (pageGestureAxis == SlideAxis.both) {
-    return offset.distance.greaterThan(
+    canPop = offset.distance.greaterThan(
         Offset(pageSize.width, pageSize.height).distance / parameter);
   } else if (pageGestureAxis == SlideAxis.horizontal) {
-    return offset.dx.abs().greaterThan(pageSize.width / parameter);
+    canPop = offset.dx.abs().greaterThan(pageSize.width / parameter);
   } else if (pageGestureAxis == SlideAxis.vertical) {
-    return offset.dy.abs().greaterThan(pageSize.height / parameter);
+    canPop = offset.dy.abs().greaterThan(pageSize.height / parameter);
   }
-  return true;
+  return canPop ? null : Offset.zero;
 }
 
 double defaultSlideScaleHandler({
